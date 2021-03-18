@@ -1,0 +1,514 @@
+---
+title: "MDSC-202-Mini-Project-20238"
+author: "Vigneshwaran"
+date: "3/9/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Importing Data and Initial Libraries
+```{r}
+library(readr)
+data = read_csv("heart.csv")
+data = na.omit(data)
+head(data)
+```
+
+## Data Defenitions as per Attributes
+
+This database contains 76 attributes, but all published experiments refer to using a subset of 14 of them. In particular, the Cleveland database is the only one that has been used by ML researchers to this date.The "target" field refers to the presence of heart disease in the patient. It is integer valued 0 = no/less chance of heart attack and 1 = more chance of heart attack
+
+Attribute Information
+1) age
+2) sex: 1=male 0=female
+3) chest pain type (4 values)
+4) resting blood pressure
+5) serum cholestoral in mg/dl
+6) fasting blood sugar > 120 mg/dl
+7) resting electrocardiographic results (values 0,1,2)
+8) maximum heart rate achieved
+9) 0exercise induced angina
+10) oldpeak = ST depression induced by exercise relative to rest
+11) the slope of the peak exercise ST segment
+12) number of major vessels (0-3) colored by flourosopy
+13) thal: 0 = normal; 1 = fixed defect; 2 = reversable defect
+14) target: 0= less chance of heart attack 1= more chance of heart attack
+
+
+# Basic Statistics
+
+## Data Summary
+```{r}
+summary(data)
+```
+With the descriptive statistics summary, we can find that there are no outliers at the outset. But we must dive into it deeply according to the attributes. We also see that the data's main objective is a classification problem. So taking his into consideration, lets us try to track the outliers with respect to the target variable
+
+```{r}
+factorData = function(data) {
+  data$sex = as.factor(data$sex)
+  data$cp = as.factor(data$cp)
+  data$fbs = as.factor(data$fbs)
+  data$restecg = as.factor(data$restecg)
+  data$exang = as.factor(data$exang)
+  data$slope = as.factor(data$slope)
+  data$ca = as.factor(data$ca)
+  data$thal = as.factor(data$thal)
+  data$target = as.factor(data$target)
+  return(data)
+}
+
+defactorData = function(data) {
+  data$sex = as.integer(as.character(data$sex))
+  data$cp = as.integer(as.character(data$cp))
+  data$fbs = as.integer(as.character(data$fbs))
+  data$restecg = as.integer(as.character(data$restecg))
+  data$exang = as.integer(as.character(data$exang))
+  data$slope = as.integer(as.character(data$slope))
+  data$ca = as.integer(as.character(data$ca))
+  data$thal = as.integer(as.character(data$thal))
+  data$target = as.integer(as.character(data$target))
+  return(data)
+}
+```
+
+
+## Correlation Matrix
+```{r}
+correlation_matrix = round(cor(data), 1)
+
+library(ggcorrplot)
+ggcorrplot(correlation_matrix, hc.order=TRUE,
+           lab=TRUE, type='lower',
+           show.legend=FALSE, 
+           outline.col='white',
+           ggtheme=ggplot2::theme_gray)
+```
+
+
+
+# Exploratory Data Analysis
+
+So far all the visualizations make no sense, so we have to find better ways to make the plots tell a story. One thing is that many variables are discrete, so for obvious reasons scatter would make no sense. So Now let us try continuous variables first
+
+
+The above visualizations were simply pathetic. We forgot that many attributes were discrete and we foolishly applied the same old technique which we will use for Continuous Variables. Now that we realized our mistake, lets approach it in a different way.
+
+## Age
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+data = factorData(data)
+
+grid.arrange(ggplot(data=data, aes(target, age)) +
+               geom_point(aes(color=age), show.legend=FALSE),
+             ggplot(data=data, aes(target, age)) +
+               geom_boxplot(aes(fill=target), show.legend=FALSE),
+             nrow=1,
+             top='Age vs Heart Disease')
+```
+
+The most common assumption would be to consider age as an good estimator for heart disease. Going on that line, we can see that people above the age of 30 have taken more tests related to cardiology. So from a angle our assumption is correct but also there is inference problem with respect to positive and negative results with respect to age. To aid this lets us add this as an third parameter in upcoming plots along with the other attribute.
+
+## Resisting Blood Pressure - trestbps
+```{r}
+grid.arrange(ggplot(data=data, aes(target, trestbps)) +
+               geom_point(aes(color=age), show.legend=FALSE),
+             ggplot(data=data, aes(target, trestbps)) +
+               geom_boxplot(aes(fill=target), show.legend=FALSE),
+             nrow=1,
+             top='Resting Blood Pressure vs Heart Disease')
+
+```
+
+The first thing to make out is that the outliers are on the higher end and not on the lower end. The average blood pressure is between around 120 and a little less than 150 irrespective of the result of whether there is disease or not. The age factor helps a little as we see there are darker points below 135 Resting blood pressure. Which brings out a interesting hidden inference old people's blood pressure is comparatively high during normal activity when compared with the people around 30 to 50
+
+## Serum Cholestrol - chol
+```{r}
+grid.arrange(ggplot(data=data, aes(target, chol)) +
+               geom_point(aes(color=age), show.legend=FALSE),
+             ggplot(data=data, aes(target, chol)) +
+               geom_boxplot(aes(fill=target), show.legend=FALSE),
+             nrow=1,
+             top='Serum Cholesterol vs Heart Disease')
+```
+
+Fact: High levels of Serum Cholesterol level may lead to less blood flow to the heart as it thickens the blood
+
+We don't see much of a impact with respect to heart disease but we do find that people aged between 30 - 50 are more prone to Heart disease if the serum cholesterol even of the range is same as of the aged people. This might imply that the life style is a bit to blame but we cant be sure as this data was recorded on 1988.
+
+## Maximum Heartrate achieved - thalach
+```{r}
+grid.arrange(ggplot(data=data, aes(target, thalach)) +
+               geom_point(aes(color=age), show.legend=FALSE),
+             ggplot(data=data, aes(target, thalach)) +
+               geom_boxplot(aes(fill=target), show.legend=FALSE),
+             nrow=1,
+             top='Maximum Heartrate achieved vs Heart Disease')
+```
+
+Maximum heart rate clearly has a direct impact with respect to heart disease if the people are aged around 30 to 50. So this will defenetly be a good x variable in the logistic regression. And one more inference is that Young people tend to achieve maximum heart rate. From the past some plots, age does not directly matter but it sure has its effect with respect to other attributes. My assumption is that the stress level is high during 30 years to 50 years as due to job as a result there might be a work-life imbalance. It is known that stress does take a good amount of toll on the heart.
+
+## ST depression induced by exercise relative to rest - oldpeak
+```{r}
+grid.arrange(ggplot(data=data, aes(target, oldpeak)) +
+               geom_point(aes(color=age), show.legend=FALSE),
+             ggplot(data=data, aes(target, oldpeak)) +
+               geom_boxplot(aes(fill=target), show.legend=FALSE),
+             nrow=1,
+             top='ST Depression induced by Exercise relative to test vs Heart Disease')
+```
+
+Fact: If there is depression on blood pressure during stress, there is a high probability of Coronary Artery Disease
+
+Age is not useful here as we can its is quite equally distributed even if it is skewed to the disease bracket a bit. But the thing is the fact mentioned above is true as more depression of blood pressure(low in terms of datapoint)leads to heart disease.
+
+Now that we are done with continuous variables, let us hop on to discrete variables
+
+## Gender - sex
+```{r}
+ggplot(data=data, aes(sex, fill=target)) +
+  geom_bar(position='fill') +
+  labs(title='Gender vs Heart Disease', x='Gender', y='Count')
+```
+We can figure out that women are more susceptible to heart disease as compared to men according to our sample. This implies that 75% of the tested women has heart disease. So in total women roughly account for 65.2 % of total heart disease according to the sample set.
+
+## Chest Pain Type - cp
+```{r}
+ggplot(data=data, aes(target, fill=cp)) +
+  geom_bar(position='dodge') +
+  labs(title='Chest Pain Type vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+If the chest pain type is 0, its good as the data says that its going to be of no issues but if the chest pain is of type 1 or 2, there is a good chance that the person has a disease with respect to her/his heart.
+
+## Fasting Blood Sugar- fbs
+```{r}
+ggplot(data=data, aes(target, fill=fbs)) +
+  geom_bar(position='dodge') +
+  labs(title='Fasting Blood Sugar vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+This attribute is pretty useless with respect to heart disease as there is not much of difference.
+
+## Resting electrocradiographic results - restecg
+```{r}
+ggplot(data=data, aes(target, fill=restecg)) +
+  geom_bar(position='dodge') +
+  labs(title='Resting ECG Results vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+ECG results of 2 when resting is rare as it doesn't even add up to 10 counts. But as a matter of fact one thing to notice is that if the result is 1 there is roughly around 63% chance that the person has disease related to the heart.
+
+
+## Exercise induced angina- exang
+```{r}
+ggplot(data=data, aes(target, fill=exang)) +
+  geom_bar(position='dodge') +
+  labs(title='Exercise Induced Angina vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+There is a 2 in 3 chance that the person has heart disease if there is pain related to heart while doing some physical work like exercise. 
+
+## Slope of peak exercise ST segment - slope
+```{r}
+ggplot(data=data, aes(target, fill=slope)) +
+  geom_bar(position='dodge') +
+  labs(title='Slope of Peak Exercise ST Segment vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+When the slope is 2, the chance of having a heart disease is high and if the slope is 1 the chance of having a heart disease is a little low
+
+## Number of major vessels colored by flouroscopy - ca
+```{r}
+ggplot(data=data, aes(target, fill=ca)) +
+  geom_bar(position='dodge') +
+  labs(title='Major Vessels colored by Flouroscopy vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+## Thalium stress test result - thal
+```{r}
+ggplot(data=data, aes(target, fill=thal)) +
+  geom_bar(position='dodge') +
+  labs(title='Thalium Stress Test Result vs Heart Disease', x='Heart Disease', y='Count')
+```
+
+Fact: Thalium Stress test is to determine how well the blood flows into the heart
+
+If the person has irreversible effect, then we can see that the person will mostly likely be afflicted with heart disease
+
+# Linear Regression Model
+
+## Basic Model using AIC method
+```{r}
+library(MASS)
+
+data = defactorData(data)
+mod = lm(thalach ~ ., data)
+step = stepAIC(mod, direction='backward', trace=TRUE)
+
+summary(step)
+```
+
+## Final Linear Regression Model
+```{r}
+lm_model = lm(thalach ~ age + trestbps + exang + slope + target, data=data)
+summary(lm_model)
+
+par(mfrow=c(2,2), mar=c(4,4,2,0.5))
+plot(lm_model)
+
+shapiro.test(data$thalach)
+```
+
+## Applying Boxcox Transformation
+```{r}
+bc = boxcox(thalach ~ age + exang + slope + target, data=data)
+
+lambda = bc$x[which.max(bc$y)]
+data$thalach_norm = ((data$thalach)^(lambda)-1) /(lambda)
+
+lm_model = lm(thalach_norm ~ age + exang + slope + target, data=data)
+summary(lm_model)
+
+par(mfrow=c(2,2), mar=c(4,4,2,0.5))
+plot(lm_model)
+
+shapiro.test(data$thalach_norm)
+```
+
+# Logistic Regression Model
+
+
+
+## Initial Model
+```{r}
+lr_model = glm(target ~ ., data=data, family='binomial')
+summary(lr_model)
+```
+
+## Prediction
+```{r}
+library(pROC)
+
+pred =  predict(lr_model, type='response')
+roc = roc(target ~ sex + cp + ca + thal, data=data, plot=TRUE, print.auc=TRUE)
+model_pred = ifelse(pred>0.25, '1', '0')
+head(model_pred)
+```
+
+## Accuracy Metric
+```{r}
+acc = mean(data$target == model_pred)
+acc
+```
+
+## Confusion Matrix
+```{r}
+library(caret)
+
+tab = table(Predicted=model_pred, actual=data$target)
+con_mat = confusionMatrix(tab, positive='1', threshold=0.5)
+con_mat
+```
+
+# ANOVA
+
+## Anova Helper Functions
+```{r}
+library(car)
+
+calc_oneway = function(y, number, data, BT=FALSE) {
+  one_way_table = data.frame(
+    Field = character(),
+    Variance = logical(),
+    P_Value = numeric(),
+    F_Value = numeric(),
+    Shapiro = numeric(),
+    BT_Lambda = numeric(),
+    Levene = numeric()
+  )
+  
+  for (i in number) {
+    one_way = aov(data[[y]] ~ data[[i]], data=data)
+  
+    sum = unlist(summary(one_way))
+    lev = unlist(leveneTest(data[[y]] ~ data[[i]], data = data))
+    shap = shapiro.test(one_way$residuals)$p.value
+    lambda = 0
+    variance = TRUE
+    
+    if(shap < 0.05 && BT) {
+      bc = boxcox(data[[y]] ~ data[[i]], plotit = FALSE, data=data)
+
+      lambda = bc$x[which.max(bc$y)]
+      temp = ((data[[y]])^(lambda)-1) /(lambda)
+      
+      one_way = aov(temp ~ data[[i]], data=data)
+  
+      sum = unlist(summary(one_way))
+      lev = unlist(leveneTest(temp ~ data[[i]], data = data))
+      shap = shapiro.test(one_way$residuals)$p.value
+    }
+    
+    if(shap < 0.05 || lev < 0.05)
+      variance = FALSE
+    
+    de = data.frame(colnames(data[i]),
+                    variance,
+                    sum['Pr(>F)1'],
+                    sum['F value1'],
+                    shap,
+                    lambda,              
+                    lev['Pr(>F)1'])
+    one_way_table = data.frame(rbind(one_way_table, setNames(de, names(one_way_table))))
+  }
+  
+  row.names(one_way_table) = NULL
+  return(one_way_table)
+}
+
+calc_twoway = function(y, number, data, BT=FALSE) {
+  two_way_table = data.frame(
+    Field_1 = character(),
+    Field_2 = character(),
+    Variance = logical(),
+    P_Value_1 = numeric(),
+    F_Value_1 = numeric(),
+    P_Value_2 = numeric(),
+    F_value_2 = numeric(),
+    Shapiro = numeric(),
+    BT_Lambda = numeric(),
+    Levene = numeric()
+  )
+  
+  index = 1
+  for (i in number[1: length(number) - 1]) {
+    for (j in number[index+1 : length(number)]) {
+      if(!is.na(j)) {
+        two_way = aov(data[[y]] ~ data[[i]] + data[[j]], data=data)
+      
+        sum = unlist(summary(two_way))
+        lev = unlist(leveneTest(data[[y]] ~ data[[i]] * data[[j]], data = data))
+        shap = shapiro.test(two_way$residuals)$p.value
+        lambda = 0
+        variance = TRUE
+        
+        if(shap < 0.05 && BT) {
+          bc = boxcox(data[[y]] ~ data[[i]] + data[[j]], plotit = FALSE, data=data)
+    
+          lambda = bc$x[which.max(bc$y)]
+          temp = ((data[[y]])^(lambda)-1) /(lambda)
+          
+          two_way = aov(temp ~ data[[i]] + data[[j]], data=data)
+      
+          sum = unlist(summary(two_way))
+          lev = unlist(leveneTest(temp ~ data[[i]] * data[[j]], data=data))
+          shap = shapiro.test(two_way$residuals)$p.value
+        }
+        
+        if(shap < 0.05 || lev < 0.05)
+          variance = FALSE
+        
+        de = data.frame(colnames(data[i]),
+                        colnames(data[j]),
+                        variance,
+                        sum['Pr(>F)1'],
+                        sum['F value1'],
+                        sum['Pr(>F)2'],
+                        sum['F value2'],
+                        shap,
+                        lambda,
+                        lev['Pr(>F)1'])
+        two_way_table = data.frame(rbind(two_way_table, setNames(de, names(two_way_table))))
+      }
+    }
+    index = index + 1
+  }
+  
+  row.names(two_way_table) = NULL
+  return(two_way_table)
+}
+```
+
+
+## Age - One Way
+```{r}
+data = factorData(data)
+age_one_way = calc_oneway(1, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+age_one_way
+```
+
+
+## Trestbps - One Way
+```{r}
+trestbps_one_way = calc_oneway(4, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+trestbps_one_way
+```
+
+## Chol - One Way
+```{r}
+chol_one_way = calc_oneway(5, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+chol_one_way
+```
+
+## Thalach - One Way
+```{r}
+thalach_one_way = calc_oneway(8, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+thalach_one_way
+```
+
+
+## Oldpeak - One Way
+```{r}
+data$oldpeak = data$oldpeak + 1
+oldpeak_one_way = calc_oneway(10, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+data$oldpeak = data$oldpeak - 1
+oldpeak_one_way
+```
+
+## Age - Two Way
+```{r}
+age_two_way = calc_twoway(1, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+age_two_way
+```
+
+
+## Trestbps - Two Way
+```{r}
+trestbps_two_way = calc_twoway(4, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+trestbps_two_way
+```
+
+## Chol - Two Way
+```{r}
+#chol_two_way = calc_twoway(5, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+#chol_two_way
+```
+
+## Thalach - Two Way
+```{r}
+thalach_two_way = calc_twoway(8, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+thalach_two_way
+```
+
+
+## Oldpeak - Two Way
+```{r}
+data$oldpeak = data$oldpeak + 1
+oldpeak_two_way = calc_twoway(10, c(2, 3, 6, 7, 9, 11, 12, 13, 14), data, BT=TRUE)
+data$oldpeak = data$oldpeak - 1
+oldpeak_two_way
+```
+
+# Story about data
+
+Statutory Warning: Everything is based on creativity, assumptions, data, and a little unavoidable human bias
+Even during 1988, people were so stressed during their mid-life. So yeah MID-LIFE CRISIS is real. Mostly it is because of added responsibilities that they carry as grown adults but we cant also reject other factors. As the middle-aged people were stressing their lives, there are cool old-aged people taking frequent tests just to get a check on their heart status. Most of the time it's good news. Their calmness which could be the result of a post-retirement lifestyle can be witnessed by the Resting Blood Pressure.
+The shift in food consumption was clearly pointed by the Serum Cholesterol Level. Middle-aged people had high cholesterol when compared to that of the old people during the late 1980s. This often leads to the thickening of blood restricting their proper blood flow into their hearts. So food choices are a big deal ain't they?
+According to ourworlddata.org, the earnings started converging during the late 1980s[3]. This implies that before this not many women were earning. As there is a sudden shift for women, they obviously had more stress as they had to manage both the family as well as their professional life. Our analysis also tells that Women are more susceptible to heart disease than men.
+Our detailed ANOVA tests tell us that many attributes are not required as there are certain attributes that are more contributing to the story. Time for Attribute awards. The most useless contributor's awards go to age, chol, fbs, and restecg. The useless contributor's awards go to trestbps and oldpeak.
